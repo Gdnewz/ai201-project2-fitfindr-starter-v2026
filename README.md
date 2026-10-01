@@ -59,17 +59,18 @@
 
 ### `search_listings`
 
-- **What it does:** Searches for listings data for items matching a description,optionally filtered by size and price ceiling
-- **Inputs:** description(str), size(str), max_price(float)
-- **Returns:** Returns a list of matching listing dicts,like the size, category, description, and the title, best match first. 
-- **When it has nothing:** returns empty list when nothing matches, loops branches here 
+- **What it does:** Searches the listings data for items matching a description. Builds a keyword set from each listing's title, description and style_tags and scores it by how many keywords overlap with the query. Optionally filters by size and by a price ceiling. Returns the highest-scoring listings first, at most `config.SEARCH_RESULT_LIMIT` (10) of them.
+- **Inputs:** `description` (str, required), `size` (str or None, optional — None skips size filtering), `max_price` (float or None, optional — None skips price filtering; the ceiling is inclusive)
+- **Returns:** a list of full listing dicts, best match first. Each dict has id, title, description, category, style_tags, size, condition, price, colors, brand (often None) and platform.
+- **When it has nothing:** returns an empty list — not None, not an exception.The loop branches on this.
+- **Size matching:** a listing's size is split on `/` and anything in parentheses is dropped, so "S/M" matches a query of "S" or "M" and "XL (oversized)" is just XL. Any size starting with "One Size" matches every query.
 
 ### `suggest_outfit`
 
-- **What it does:**Takes a thrifted item and the user's wardrobe, suggests one or two outfits. calls model, generate()
-- **Inputs:**new_item(dict), wardrobe(dict)
-- **Returns:**returns not empty str with outfit suggestions
-- **When it has nothing:** returns general styling advice
+- **What it does:** Takes a thrifted listing and the user's wardrobe and asks the model for one or two outfits combining them. The system instruction restricts it to naming only pieces from the wardrobe it was given.
+- **Inputs:** `new_item` (dict — a listing dict from search_listings),`wardrobe` (dict with an `items` key holding a list of wardrobe items; items use `name`, not `title`)
+- **Returns:** a non-empty string of outfit suggestions naming specific wardrobe pieces alongside the new item.
+- **When it has nothing:** when `wardrobe["items"]` is empty, it states that the wardrobe is empty in the first sentence, then gives general styling advice for the item on its own. It does not raise and does not return "".
 
 ### `create_fit_card`
 
@@ -105,11 +106,6 @@
 
 ## Sample Run
 
-<!-- Two things go here.
-
-     1. One FULL query and its output, pasted as text.
-     2. Your three per-tool terminal tests — the command and what it printed. -->
-
 **One full query**
 
 ```
@@ -120,16 +116,36 @@ $ python app.py ask '...'
 **The three tools, tested one at a time**
 
 ```
-$ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
+$ python -c "from tools import search_listings; print(search_listings('graphic tee'))"
 
+[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.', 'category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'description': 'Vintage-style bootleg tee with faded graphic. Slightly boxy fit. 100% cotton, soft and worn-in.', 'category': 'tops', 'style_tags': ['graphic tee', 'vintage', 'grunge', 'streetwear', 'band tee'], 'size': 'L', 'condition': 'good', 'price': 24.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_033', 'title': 'Vintage Band Tee — Faded Grey', 'description': 'Faded grey band-style tee with distressed graphic. Crew neck. Fits boxy. Well-loved but no holes or major damage.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'band tee', 'graphic tee', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 19.0, 'colors': ['grey', 'charcoal'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_011', 'title': 'Low-Rise Cargo Pants — Khaki', 'description': 'Y2K era low-rise cargo pants. Lots of pockets. Khaki color, slightly distressed at the hems. Great for layering with a long tee.', 'category': 'bottoms', 'style_tags': ['y2k', 'cargo', '2000s', 'streetwear'], 'size': 'W29', 'condition': 'fair', 'price': 27.0, 'colors': ['khaki', 'tan'], 'brand': None, 'platform': 'poshmark'}, {'id': 'lst_015', 'title': 'Vintage Graphic Hoodie — Faded Black', 'description': 'Faded black pullover hoodie with barely-visible vintage graphic on the chest. Cozy interior. Some pilling but adds to the worn-in look.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'graphic', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 26.0, 'colors': ['black', 'charcoal'], 'brand': None, 'platform': 'depop'}]
 ```
+Six results, ranked. `lst_002` and `lst_006` lead because "graphic tee" appears in both their titles and their style_tags. `lst_017` is a mesh top that only mentions a graphic tee in passing — a known false positive of keyword overlap, kept here because it's honest about what this scoring can and can't tell apart.
 
 ```
 $ python -c "from tools import suggest_outfit; ..."
 
-```
+```$ python -c "from tools import suggest_outfit; from utils.data_loader import load_listings, get_empty_wardrobe; print(suggest_outfit(load_listings()[0], get_empty_wardrobe()))" 
 
-```
+Your wardrobe is currently empty. 
+
+However, since you're looking at these Vintage Levi's 501 Jeans, here is some great general styling advice for them on their own:
+
+* **Keep it Casual:** Pair these classic medium-wash jeans with a simple tucked-in white t-shirt and leather belt for an effortless, timeless streetwear look.
+* **Play with Proportions:** Because 501s have a classic straight leg, they look fantastic balanced with either a cropped top to accentuate the high waist or an oversized, boxy sweater for a relaxed, vintage vibe.
+* **Footwear versatility:** These jeans are a blank canvas—dress them down with classic canvas sneakers, or elevate them with leather loafers or ankleboots.
+
+
+``` $ python -c "from tools import suggest_outfit; from utils.data_loader import load_listings, get_example_wardrobe; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))" 
+
+Here is an outfit combining your new Vintage Levi's 501 Jeans with pieces from your wardrobe:
+
+**Outfit:**
+* White ribbed tank top
+* Vintage black denim jacket
+* Chunky white sneakers
+* Black crossbody bag
+
 $ python -c "from tools import create_fit_card; ..."
 
 ```

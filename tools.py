@@ -108,10 +108,15 @@ def search_listings(
         if not _size_matches(size, listings["size"]):
             continue
 
-        b = _keywords(listings["description"])
+        text = _keywords(listings["title"] + " " + listings["description"]+" ".join(listings["style_tags"]))
+        b = text
         if not (a & b):
             continue 
-        load_lisiting_clothing.append(listings)
+        score = len(a & b)
+        load_lisiting_clothing.append((score,listings))
+    load_lisiting_clothing.sort(key=lambda x: x[0], reverse=True)
+    load_lisiting_clothing = [x[1] for x in load_lisiting_clothing[:config.SEARCH_RESULT_LIMIT]]
+
     return load_lisiting_clothing
 
 
@@ -145,10 +150,39 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    system = (
+        "You are a fashion stylist assistant. "
+        "Only name pieces that appear in the wardrobe list you are given. "
+        "Never suggest clothing the user does not own. "
+        "If you are told the wardrobe is empty, say so plainly in your first "
+        "sentence, then give general styling advice for the item on its own."
+    )
 
+    if not wardrobe["items"]:
+        prompt = (
+            f"The user has not added anything to their wardrobe yet. Start your "
+            f"answer by telling them that, then give general styling advice for "
+            f"this item on its own.\n\n"
+            f"Item: {new_item['title']}\n"
+            f"Category: {new_item['category']}\n"
+            f"Colors: {', '.join(new_item['colors'])}\n"
+            f"Style tags: {', '.join(new_item['style_tags'])}\n"
+            f"Price: ${new_item['price']} on {new_item['platform']}"
+        )
+    else:
+        wardrobe_items = ", ".join([item["name"] for item in wardrobe["items"]])
+        prompt = (
+            f"Suggest one or two outfits combining this new item with pieces the "
+            f"user already owns. Name only pieces from the wardrobe list.\n\n"
+            f"New item: {new_item['title']}\n"
+            f"Category: {new_item['category']}\n"
+            f"Colors: {', '.join(new_item['colors'])}\n"
+            f"Style tags: {', '.join(new_item['style_tags'])}\n"
+            f"Price: ${new_item['price']} on {new_item['platform']}\n\n"
+            f"Wardrobe: {wardrobe_items}"
+        )
 
+    return generate(prompt, system=system)
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
 
 def create_fit_card(outfit: str, new_item: dict) -> str:
