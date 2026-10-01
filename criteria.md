@@ -54,9 +54,9 @@ Given a query that matches no listings, the agent stops before calling
      compares session["selected_item"] against what actually reached
      suggest_outfit is the shape you're after. -->
 
+A query that returns at least one result, the id of the result must be equal to the id of the input new item, 5 of 5 tries  
 
-
-**Why this target:**
+**Why this target:** The item has to have 5 of 5 tries because if the id is wrong at least onnce, something in the lopp handed the wrong item forward, and it cannot be noticed from reading the output because the fit card would still sound fine.  
 
 
 
@@ -75,9 +75,9 @@ Given a query that matches no listings, the agent stops before calling
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
 
+A query that returns a fit card, must have the price of the item, and title of the item, 4 of 5 tries.
 
-
-**Why this target:**
+**Why this target:** the target 4 of 5 tries is for sentences that do not get the full description of the item, especially if the data for the title is lengthy. the model can drop some of the wordings and still be right, because the price and the title aren't equally fragile to the context of the sentence
 
 
 
@@ -92,9 +92,9 @@ Given a query that matches no listings, the agent stops before calling
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
 
+a query that returns an output string, name of the item, and the list of items match with what appears in the wardrobe, 5 of 5 tries. If the wardrobe is empty, give a statement about wardrobe being empty and a general styling advice.
 
-
-**Why this target:**
+**Why this target:** 5 of 5 tries because if one of the runs names an item the user does not have, it is a false claim about their data
 
 
 
