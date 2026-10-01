@@ -1,10 +1,8 @@
-# from tools import search_listings
-# from utils.data_loader import load_listings, get_example_wardrobe, get_empty_wardrobe
-# results = search_listings(description="graphic tee")
-# print(len(results))
-# for r in results:
-#     print(r["id"], r["title"])
+from tools import create_fit_card, suggest_outfit
+from utils.data_loader import load_listings, get_example_wardrobe
 
-from tools import suggest_outfit
-from utils.data_loader import get_example_wardrobe, load_listings, get_empty_wardrobe
-print(suggest_outfit(load_listings()[0], get_example_wardrobe()))
+item = load_listings()[0]
+outfit = suggest_outfit(item, get_example_wardrobe())
+print(create_fit_card(outfit, item))
+print("---")
+print(create_fit_card("", item))
