@@ -59,24 +59,24 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Searches for listings data for items matching a description,optionally filtered by size and price ceiling
+- **Inputs:** description(str), size(str), max_price(float)
+- **Returns:** Returns a list of matching listing dicts,like the size, category, description, and the title, best match first. 
+- **When it has nothing:** returns empty list when nothing matches, loops branches here 
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:**Takes a thrifted item and the user's wardrobe, suggests one or two outfits. calls model, generate()
+- **Inputs:**new_item(dict), wardrobe(dict)
+- **Returns:**returns not empty str with outfit suggestions
+- **When it has nothing:** returns general styling advice
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:**it writes a short caption someone would actually post about the find, also calls the model, generate()
+- **Inputs:**outfit(str), new_item(dict)
+- **Returns:** a two to four sentence caption
+- **When it has nothing:** return descriptive message 
 
 ---
 
@@ -93,7 +93,7 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If `search_listings` returns an empty list, put the message "no matching description" in the session and stop. Otherwise, take the first result and go to `suggest_outfit`.
 
 **Where it lives:** `agent.py::run_agent`
 
