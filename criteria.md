@@ -24,7 +24,7 @@ data earns credit; *"80% seemed reasonable"* does not.
 Given a query that matches at least one listing, the agent completes all three
 tool calls and returns a fit card — in at least 4 of 5 tries.
 
-**Why this target:**
+**Why this target:** keyword overlap on title/description/style_tags means some phrasings miss entirely, "nothing over thirty dollars" parses to no price, and a query whose words don't appear in any listing returns nothing even when a relevant item exists.
 <!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
      "my search is a plain keyword match and some phrasings will miss" is a
      real answer. -->
@@ -36,7 +36,7 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
 Given a query that matches no listings, the agent stops before calling
 `suggest_outfit` and returns a message naming what to change — 5 of 5 tries.
 
-**Why this target:**
+**Why this target:** the reason is that this path has no model call in it. An empty list is an empty list, the branch is a plain if not results, and nothing varies between runs so anything under 5 of 5 would be a broken branch, not variance.
 <!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
      about this path? -->
 
@@ -56,7 +56,7 @@ Given a query that matches no listings, the agent stops before calling
 
 A query that returns at least one result, the id of the result must be equal to the id of the input new item, 5 of 5 tries  
 
-**Why this target:** The item has to have 5 of 5 tries because if the id is wrong at least onnce, something in the lopp handed the wrong item forward, and it cannot be noticed from reading the output because the fit card would still sound fine.  
+**Why this target:** The item has to have 5 of 5 tries because if the id is wrong at least once, something in the loop handed the wrong item forward, and it cannot be noticed from reading the output because the fit card would still sound fine.  
 
 
 

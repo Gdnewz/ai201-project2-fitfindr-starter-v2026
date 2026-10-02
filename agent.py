@@ -128,6 +128,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         session without calling suggest_outfit. Otherwise take the first
         result, put it in session["selected_item"], and continue.
     """
+    
     session = new_session(query, wardrobe)
     steps = 0
 
