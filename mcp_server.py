@@ -68,32 +68,31 @@ mcp = FastMCP("fitfindr", log_level="WARNING")
 
 
 # ── TODO: uncomment and fill this in ──────────────────────────────────────────
-#
-# @mcp.tool()
-# def search_listings(
-#     description: str,
-#     size: str | None = None,
-#     max_price: float | None = None,
-# ) -> list[dict]:
-#     """
-#     <-- YOUR DESCRIPTION GOES HERE.
-#
-#         One or two sentences. What does this tool do, what does it need, and
-#         what does it give back when it finds nothing? Written for a reader
-#         who cannot see the code.
-#     """
-#     return _search_listings_impl(description, size, max_price)
-#
-# ──────────────────────────────────────────────────────────────────────────────
-#
+
+@mcp.tool()
+def search_listings(
+    description: str,
+    size: str | None = None,
+    max_price: float | None = None,
+) -> list[dict]:
+    """
+     **What it does:** Searches the listings data for items matching a description. Builds a keyword set from each listing's title, description and style_tags and scores it by how many keywords overlap with the query. Optionally filters by size and by a price ceiling. Returns the highest-scoring listings first, at most 10 of them.
+     **Inputs:** `description` (str, required), `size` (str or None, optional — None skips size filtering), `max_price` (float or None, optional — None skips price filtering; the ceiling is inclusive)
+     **Returns:** a list of full listing dicts, best match first. Each dict has id, title, description, category, style_tags, size, condition, price, colors, brand (often None) and platform.
+     **When it has nothing:** returns an empty list — not None, not an exception.
+    """
+    return _search_listings_impl(description, size, max_price)
+
+#──────────────────────────────────────────────────────────────────────────────
+
 # Two notes on the block above.
-#
+
 # The registered name is the *function* name — so the block above registers
 # "search_listings", which is exactly what call_tool("search_listings", ...)
 # asks for. That is also why the import at the top of this file brings the real
 # implementation in under an alias: without it, the registered function and the
 # one it calls would be the same name, and the tool would call itself.
-#
+
 # FastMCP builds the input schema from your type hints, which is why the hints
 # are not optional here. `description: str` becomes a required string;
 # `max_price: float | None = None` becomes an optional number. Getting these
