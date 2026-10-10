@@ -286,9 +286,25 @@ general styling advice, and an unreachable model returns a sentence pointing at
 
 **Diagnoses**
 
-<!-- Fill in Milestone 4: for criterion 4, name the place (tool / branch /
-     session / model output) AND the mechanism. Then the pattern, then the
-     empty-wardrobe caption bug. -->
+**Criterion 4 — MISSED (1/5). Where it failed: the model's output, in `tools.py::create_fit_card`.**
+
+The tool itself worked — it returned a caption of the right length, with the price and the platform, on all five tries. The failure is in what the model wrote. The item's title is `Suede Chelsea Boots — Tan`, and four of five cards rendered it as "Suede Chelsea Boots" or "vintage Suede Chelsea Boots", dropping the `— Tan` colour suffix.
+
+The mechanism: my prompt asks for "the item's title and price to appear in the caption", but it never tells the model to reproduce the title *verbatim*, and the caption is explicitly asked for in a casual, first-person voice. Given a title with an em-dash descriptor, the model treats the part after the dash as optional descriptive detail and rewrites the whole thing into natural prose — exactly what a caption-writing instruction invites. The price survived because `$44` is a single token with nothing to paraphrase; the title didn't because it's a phrase the model feels free to reword.
+
+**The pattern: this is one problem, not two.**
+
+The same paraphrasing shows up in a different tool. In the `outfit grounded in wardrobe` scenario, all five outfits from `tools.py::suggest_outfit` refer to the item as "your new light wash cropped denim jacket" — never the actual title, `Denim Jacket — Light Wash, Cropped`. Two tools, two prompts, one mechanism: neither prompt requires the exact title string, so the model rewrites titles into prose in both places. That means one fix should move both, which is what Milestone 5 tests.
+
+**A second failure found while testing, outside the five criteria.**
+
+On the empty-wardrobe path, try 1 of the `empty wardrobe` scenario produced this caption from `tools.py::create_fit_card`:
+
+> "...hits right at the waist, so I threw it over **my empty wardrobe** for an effortlessly cool, balanced look."
+
+Where it failed: the model's output again, but the cause is upstream. `create_fit_card` takes the outfit string as its input, and on the empty-wardrobe path that string opens with "Your wardrobe is currently empty." The model read that sentence as outfit content and folded "empty wardrobe" into the caption as though it were a garment. The tool worked and nothing raised; the prompt assumed the outfit string always describes wearable items, which isn't true on this path. It only appears when the wardrobe is empty, which is why none of the five criteria caught it.
+
+**Nothing was revised.** Criterion 4 was measurable as written and I missed it, so the target stays at 4 of 5 and gets a fix attempted instead. One measurement note on criterion 3: my criterion names the item's `id`, but `trace.py::_short` renders item dicts as title/price/platform, so what I actually compared was title + price + platform across `[3] select_item` and `[4] suggest_outfit`. Same item, five of five — but worth stating that the id itself isn't what's printed.
 
 ---
 
@@ -384,7 +400,7 @@ One thing worth noting: the trace label `search_listings (via MCP)` is a hardcod
        [x] Run Log — Before, five criteria, five tries each
        [x] Real output pasted underneath, naming file and function
        [x] A verdict on every criterion
-       [ ] A diagnosis for every miss, naming a place AND a mechanism
+       [x] A diagnosis for every miss, naming a place AND a mechanism
        [x] Loop Trace, with the MCP call visible in it
        [x] All three failure modes triggered and handled
        [ ] One improvement, with Run Log — After in the same format
