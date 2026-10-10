@@ -212,8 +212,7 @@ Produced by `agent.py::run_agent` (the full loop), caption from `tools.py::creat
 ```
 
 ```
-<PASTE the full fit card text for try 1 of "matching query completes"
- from results/run_2026-10-10_1117_before.md>
+scored this Y2K Baby Tee — Butterfly Print for $18.0 on depop and I'm obsessed with the pink and purple graphic. I threw it on with some baggy dark wash jeans and chunky sneakers for an easy streetwear vibe, but I love how it looks layered under my black zip hoodie with combat boots too. honestly one of my best vintage scores yet.
 ```
 
 **Criterion 2** — scenario `impossible query stops early`, query `designer ballgown size XXS under $5`.
@@ -359,26 +358,60 @@ One thing worth noting: the trace label `search_listings (via MCP)` is a hardcod
 
 **What I changed:**
 
+One change, to the prompt in `tools.py::create_fit_card`. The instruction used to read:
+
+> "Include the item's title and its price in the caption, and mention the platform once."
+
+It now reads:
+
+> "The caption must contain the item's title EXACTLY as written below — word for word, including everything after any dash. Do not shorten it, reword it, or drop the colour. Include its price too, and mention the platform once."
+
+Nothing else was touched — not the system prompt, not the field lines, not the empty-outfit guard, and not `suggest_outfit`. One change so the result is attributable.
+
 **Which failure it was meant to fix:**
+
+Criterion 4, which came in at 1 of 5 against a target of 4 of 5. The diagnosis said the tool worked and the prompt was at fault: it asked for "the title" without asking for it verbatim, while the system prompt simultaneously told the model to write like a person and not a product listing. Faced with `Suede Chelsea Boots — Tan`, the model resolved that tension by treating the colour suffix as droppable prose. The fix removes the ambiguity rather than papering over it in code — a string check with a retry would have raised the score without addressing why the model was dropping it.
 
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. A matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. An impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. The selected item is the item `suggest_outfit` received | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. The fit card names the item's price and title | 4 of 5 | PASS | PASS | PASS | PASS | PASS | **MET (5/5)** — was 1/5 |
+| 5. The outfit names only items in the wardrobe | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+Run with `python run_eval.py --label after` — same scenarios, same five tries, caching off.
+Full output: `results/run_2026-10-10_1152_after.md`.
 
 **Did it help, and how do I know:**
+
+Yes. Criterion 4 went from **1 of 5 to 5 of 5**, which is the only row that moved, and it moved from MISSED to MET. All five captions now carry the title in full, where before only one did:
+
+```
+Try 1: Scored these Suede Chelsea Boots — Tan for $44.0 on poshmark and I'm obsessed...
+Try 2: Scored these Suede Chelsea Boots — Tan for just $44.0 on poshmark, and they completely tie my earth-toned look...
+Try 3: Scored these gorgeous Suede Chelsea Boots — Tan for just $44.0 on poshmark and I'm obsessed...
+Try 4: Scored these Suede Chelsea Boots — Tan for just $44.0 on poshmark and I'm obsessed...
+Try 5: Found these Suede Chelsea Boots — Tan on poshmark for just $44.0 and I am obsessed...
+```
+
+Two things make me confident this is the change and not noise. First, the effect generalised to items the fix was never tested against: the denim-jacket captions in the other scenarios now read "Denim Jacket — Light Wash, Cropped" verbatim, where in the before run every one of them said "vintage light wash cropped denim jacket". Second, nothing else moved — criteria 1, 2, 3 and 5 are unchanged, which is what should happen when only one model-calling prompt is edited.
+
+The caption voice did not suffer. The cards still read like posts rather than product listings; the model just anchors on the real title now instead of rewriting it.
 
 ---
 
 ## What's Still Broken
 
-<!-- For each criterion still missed: what you'd do, and why you stopped where
-     you did. "I ran out of time" is fine if it's true. -->
+**1. `suggest_outfit` still paraphrases item titles.** My diagnosis claimed one mechanism showing up in two tools, and I only fixed one of them. In the after run, every outfit from `tools.py::suggest_outfit` still opens "your new light wash cropped denim jacket" rather than `Denim Jacket — Light Wash, Cropped`. This is the expected result of changing one prompt and not the other — it confirms the mechanism rather than undermining it — but half the pattern is still live. The fix is the same verbatim-title instruction added to `suggest_outfit`'s prompt. I left it because Milestone 5 asks for one change measured properly, and fixing both would have made the result unattributable.
+
+**2. The empty-wardrobe caption bug is unresolved, not fixed.** The "I threw it over my empty wardrobe" nonsense did not recur in any of the five empty-wardrobe cards in the after run. I am not calling it fixed: it only appeared in 1 of 5 tries in the before run, so it was intermittent to begin with and five clean tries is weak evidence. The real fix is to stop passing the "Your wardrobe is currently empty" sentence into `create_fit_card` as though it were outfit content — either by having `suggest_outfit` return the empty-wardrobe advice under a separate key, or by having `create_fit_card` detect that path and caption the item alone. I did not attempt it because it is a second change and would have contaminated the measurement of the first.
+
+**3. Criterion 3 is measured by proxy.** My criterion names the item's `id`, but the trace renders item dicts as title/price/platform, so what I actually compared was title + price + platform. It is met five of five on that basis and I believe it, but a stricter check would compare `session["selected_item"]["id"]` against the id of the dict `suggest_outfit` received. I would add that assertion before relying on this criterion in a future unit.
+
+**4. The search is still a plain keyword overlap.** Outside the five criteria, but worth naming: `search_listings` returns a mesh top for "graphic tee" because the phrase appears in the description, and "nothing over thirty dollars" parses to no price ceiling at all. Both are known and documented above rather than fixed, because neither was what this unit's test pointed at.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
@@ -403,10 +436,10 @@ One thing worth noting: the trace label `search_listings (via MCP)` is a hardcod
        [x] A diagnosis for every miss, naming a place AND a mechanism
        [x] Loop Trace, with the MCP call visible in it
        [x] All three failure modes triggered and handled
-       [ ] One improvement, with Run Log — After in the same format
-       [ ] What's Still Broken
-       [ ] At least four new commits
-       [ ] The SAME repository URL as last unit
+       [x] One improvement, with Run Log — After in the same format
+       [x] What's Still Broken
+       [x] At least four new commits
+       [x] The SAME repository URL as last unit
 
      Do not delete and recreate this repository. Your commit history is what
      shows your criteria existed before your results did.

@@ -234,9 +234,11 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
 
     prompt = (
         f"Write a caption for a post about this thrift find and the outfit it "
-        f"goes with. Include the item's title and its price in the caption, and "
-        f"mention the platform once. Be specific about the vibe rather than "
-        f"generic.\n\n"
+        f"goes with. The caption must contain the item's title EXACTLY as "
+        f"written below — word for word, including everything after any dash. "
+        f"Do not shorten it, reword it, or drop the colour. Include its price "
+        f"too, and mention the platform once. Be specific about the vibe rather "
+        f"than generic.\n\n"
         f"Outfit: {outfit}\n"
         f"Item: {new_item['title']}\n"
         f"Category: {new_item['category']}\n"
