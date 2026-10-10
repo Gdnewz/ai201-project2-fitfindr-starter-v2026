@@ -131,7 +131,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     
     session = new_session(query, wardrobe)
     steps = 0
-
+    trace.start_trace()
     # ⚠️ UNIT 4, MILESTONE 2 — everything in the try/except is unit 3 code; the
     # handler around it is what unit 4 adds, so that a bad key produces a
     # sentence rather than a stack trace.
